@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoboVibeCode - Autonomous Roblox AI Agent</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>🤖 RoboVibeCode</h1>
+                <p class="subtitle">Autonomous Roblox AI</p>
+            </div>
+            
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">MCP Server:</span>
+                    <span class="status-indicator" id="mcp-status">⚫ Checking...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gemini AI:</span>
+                    <span class="status-indicator" id="gemini-status">⚫ Not Configured</span>
+                </div>
+            </div>
+            
+            <div class="sidebar-actions">
+                <button class="btn btn-secondary" onclick="openSettings()">⚙️ Settings</button>
+                <button class="btn btn-secondary" onclick="createBackup()">💾 Create Backup</button>
+                <button class="btn btn-secondary" onclick="toggleFileTree()">📁 Project Files</button>
+                <button class="btn btn-secondary" onclick="newConversation()">➕ New Chat</button>
+            </div>
+            
+            <div class="file-tree-container" id="file-tree-container" style="display: none;">
+                <h3>Project Structure</h3>
+                <div id="file-tree" class="file-tree">
+                    <p class="loading">Loading...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="chat-container" id="chat-container">
+                <div class="welcome-message">
+                    <h2>👋 Welcome to RoboVibeCode</h2>
+                    <p>I'm your autonomous AI agent for Roblox Studio development. I can help you:</p>
+                    <ul>
+                        <li>Create complete game systems and features</li>
+                        <li>Write and edit Roblox Lua scripts</li>
+                        <li>Analyze and optimize your project</li>
+                        <li>Build UI systems and game mechanics</li>
+                        <li>Generate entire game templates (Obby, Tycoon, RPG, etc.)</li>
+                    </ul>
+                    <p class="info-text">💡 Make sure your MCP server is running on localhost:3002 and configure your Gemini API key in settings.</p>
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <textarea 
+                    id="user-input" 
+                    placeholder="Describe what you want to create... (e.g., 'Create an obby game with 20 levels and a leaderboard')"
+                    rows="3"
+                ></textarea>
+                <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">
+                    <span id="send-btn-text">Send</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Settings</h2>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="gemini-api-key">Gemini API Key:</label>
+                    <input type="password" id="gemini-api-key" placeholder="Enter your Google Gemini API key">
+                    <small>Get your free API key at <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="mcp-url">MCP Server URL:</label>
+                    <input type="text" id="mcp-url" value="http://localhost:3002">
+                </div>
+                
+                <div class="form-group">
+                    <label for="theme-select">Theme:</label>
+                    <select id="theme-select">
+                        <option value="dark">Dark</option>
+                        <option value="light">Light</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-lua.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
