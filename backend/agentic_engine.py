@@ -316,15 +316,19 @@ Now analyze the user request and return the JSON array:"""
                 return {'success': True, 'tree': result.get('tree', []), 'result': result}
             
             elif task_type == 'create_roblox_objects' or task_type == 'create_object':
-                parent_path = params.get('parent_path', 'Workspace')
                 object_type = params.get('object_type', 'Part')
                 name = params.get('name', 'NewObject')
                 properties = params.get('properties', {})
                 
-                result = self.mcp.create_roblox_objects(parent_path, object_type, name, properties)
+                parent = params.get('parent_path', 'Workspace')
+                if parent:
+                    properties['parent'] = parent
+                
+                result = self.mcp.create_roblox_object_via_script(object_type, name, properties)
+                
                 if result.get('error'):
                     return {'success': False, 'error': result.get('error')}
-                return {'success': True, 'message': f'Created {object_type} named {name}', 'result': result}
+                return {'success': True, 'message': result.get('message', f'Created {object_type} named {name}'), 'result': result}
             
             elif task_type == 'generate_game':
                 return self._generate_game_structure(params.get('game_type', 'generic'))
@@ -391,10 +395,12 @@ Now analyze the user request and return the JSON array:"""
         for folder_path in structure.get('folders', []):
             try:
                 parts = folder_path.split('/')
-                parent = '/'.join(parts[:-1]) if len(parts) > 1 else parts[0]
+                parent = '/'.join(parts[:-1]) if len(parts) > 1 else 'Workspace'
                 folder_name = parts[-1]
                 
-                result = self.mcp.create_roblox_objects(parent, 'Folder', folder_name, {})
+                properties = {'parent': parent}
+                result = self.mcp.create_roblox_object_via_script('Folder', folder_name, properties)
+                
                 if result.get('error'):
                     errors.append(f"Folder {folder_path}: {result.get('error')}")
                 else:

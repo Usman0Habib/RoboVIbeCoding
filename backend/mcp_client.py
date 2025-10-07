@@ -104,33 +104,35 @@ class MCPClient:
         except Exception as e:
             return {'error': f'Failed to get roblox objects: {str(e)}', 'objects': []}
     
-    def create_roblox_objects(self, parent_path, object_type, name, properties=None):
-        try:
-            url = f"{self.base_url}/create_roblox_objects"
-            payload = {
-                'parent_path': parent_path,
-                'object_type': object_type,
-                'name': name,
-                'properties': properties or {}
-            }
-            print(f"🔌 MCP Request: POST {url}")
-            print(f"📦 Payload: {payload}")
-            
-            response = requests.post(url, json=payload, timeout=30)
-            
-            print(f"📡 Response Status: {response.status_code}")
-            print(f"📄 Response: {response.text[:500]}")
-            
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as e:
-            error_msg = f'HTTP {e.response.status_code} error: {e.response.text[:200]}'
-            print(f"❌ MCP Error: {error_msg}")
-            return {'error': error_msg}
-        except Exception as e:
-            error_msg = f'Failed to create roblox object: {str(e)}'
-            print(f"❌ MCP Error: {error_msg}")
-            return {'error': error_msg}
+    def create_roblox_object_via_script(self, object_type, name, properties=None):
+        """Create Roblox objects by injecting a Lua script that creates them"""
+        from roblox_templates import get_object_creation_script
+        
+        properties = properties or {}
+        
+        script_content = get_object_creation_script(object_type, name, properties)
+        
+        script_name = f"Create_{name.replace(' ', '_')}"
+        parent_path = "ServerScriptService"
+        
+        print(f"🔌 Creating {object_type} '{name}' via script injection")
+        print(f"📜 Script: {script_name}")
+        print(f"📝 Content preview: {script_content[:200]}...")
+        
+        result = self.create_script(script_name, parent_path, "Script", script_content)
+        
+        if result.get('error'):
+            print(f"❌ Failed to create object script: {result.get('error')}")
+            return {'error': f"Failed to create {object_type}: {result.get('error')}"}
+        
+        print(f"✅ Successfully created script to generate {object_type} '{name}'")
+        return {
+            'success': True,
+            'message': f"Created {object_type} '{name}' in Roblox Studio",
+            'script_name': script_name,
+            'object_type': object_type,
+            'object_name': name
+        }
     
     def modify_object_properties(self, path, properties):
         try:
