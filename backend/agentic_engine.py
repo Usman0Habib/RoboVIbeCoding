@@ -105,103 +105,247 @@ class AgenticEngine:
         return "\n".join(context_parts)
     
     def _create_task_plan(self, user_message, context):
-        tasks = []
-        
         msg_lower = user_message.lower()
         
-        if 'create script' in msg_lower or 'add script' in msg_lower or 'new script' in msg_lower:
-            tasks.append({
-                'type': 'create_script',
-                'description': 'Create new script in Roblox Studio',
-                'params': self._extract_script_params(user_message)
-            })
-        
-        if 'read' in msg_lower or 'show' in msg_lower or 'get' in msg_lower:
-            if 'file' in msg_lower or 'script' in msg_lower:
-                tasks.append({
-                    'type': 'read_file',
-                    'description': 'Read file content from Roblox Studio',
-                    'params': self._extract_file_path(user_message)
-                })
-            elif 'structure' in msg_lower or 'tree' in msg_lower or 'project' in msg_lower:
-                tasks.append({
-                    'type': 'get_file_tree',
-                    'description': 'Analyze project structure',
-                    'params': {}
-                })
-        
-        if 'write' in msg_lower or 'update' in msg_lower or 'modify' in msg_lower or 'edit' in msg_lower:
-            tasks.append({
-                'type': 'write_file',
-                'description': 'Update file content in Roblox Studio',
-                'params': self._extract_write_params(user_message)
-            })
-        
-        if 'create object' in msg_lower or 'add object' in msg_lower or 'new object' in msg_lower:
-            tasks.append({
-                'type': 'create_object',
-                'description': 'Create new Roblox object',
-                'params': self._extract_object_params(user_message)
-            })
-        
-        if any(game_type in msg_lower for game_type in ['obby', 'tycoon', 'rpg', 'simulator']):
-            tasks.append({
-                'type': 'generate_game',
-                'description': 'Generate complete game structure',
-                'params': {'game_type': self._extract_game_type(user_message)}
-            })
-        
         if 'backup' in msg_lower or 'save snapshot' in msg_lower:
-            tasks.append({
+            return [{
                 'type': 'create_backup',
                 'description': 'Create project backup',
                 'params': {}
-            })
+            }]
         
-        if not tasks:
-            tasks.append({
-                'type': 'chat',
-                'description': 'Respond to user query',
-                'params': {}
-            })
+        if 'structure' in msg_lower or 'tree' in msg_lower or 'project' in msg_lower:
+            if 'show' in msg_lower or 'get' in msg_lower or 'analyze' in msg_lower:
+                return [{
+                    'type': 'get_file_tree',
+                    'description': 'Analyze project structure',
+                    'params': {}
+                }]
         
-        return tasks
+        planning_prompt = f"""You are an autonomous Roblox development agent. Analyze the request and create a concrete action plan.
+
+User Request: {user_message}
+
+Context: {context[:500]}
+
+Available Actions:
+1. create_script - Create new Lua script with code
+   Required params: name (string), parent_path (string), script_type ("Script"|"LocalScript"|"ModuleScript"), content (Lua code string)
+
+2. write_file - Update existing file
+   Required params: path (string), content (string)
+
+3. create_roblox_objects - Create Roblox objects
+   Required params: parent_path (string), object_type (string), name (string), properties (object)
+
+4. read_file - Read file content
+   Required params: path (string)
+
+5. generate_game - Generate complete game template
+   Required params: game_type ("obby"|"tycoon"|"rpg"|"simulator")
+
+6. chat - Simple conversation (use when request is question/discussion)
+   Required params: {{}}
+
+CRITICAL: Return ONLY a valid JSON array, no other text before or after.
+
+Example output for "Create a checkpoint system":
+[
+  {{"type": "create_script", "description": "Create checkpoint manager", "params": {{"name": "CheckpointManager", "parent_path": "ServerScriptService", "script_type": "Script", "content": "local Players = game:GetService(\\"Players\\")\\n\\nPlayers.PlayerAdded:Connect(function(player)\\n    print('Player joined:', player.Name)\\nend)"}}}},
+  {{"type": "create_roblox_objects", "description": "Create checkpoints folder", "params": {{"parent_path": "ReplicatedStorage", "object_type": "Folder", "name": "Checkpoints", "properties": {{}}}}}}
+]
+
+Now analyze the user request and return the JSON array:"""
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                ai_plan = self.gemini.generate_response(planning_prompt)
+                print(f"AI response (attempt {attempt + 1}): {ai_plan[:200]}...")
+                
+                tasks = self._extract_and_validate_tasks(ai_plan)
+                
+                if tasks:
+                    print(f"✅ AI planning successful: {len(tasks)} tasks generated")
+                    return tasks
+                else:
+                    print(f"❌ No valid tasks on attempt {attempt + 1}")
+                    if attempt < max_retries - 1:
+                        planning_prompt = f"{planning_prompt}\n\nPREVIOUS ATTEMPT FAILED. You must return a valid JSON array with tasks. Example: [{{'type':'create_script','description':'desc','params':{{'name':'Test'}}}}]"
+                
+            except Exception as e:
+                print(f"❌ Planning error on attempt {attempt + 1}: {e}")
+                if attempt < max_retries - 1:
+                    planning_prompt = f"{planning_prompt}\n\nERROR: {str(e)}. Return valid JSON array only."
+        
+        print("⚠️ All planning attempts failed, using chat fallback")
+        return [{'type': 'chat', 'description': 'Respond to user query', 'params': {}}]
+    
+    def _extract_and_validate_tasks(self, ai_response):
+        """Extract and validate task list from AI response with multiple strategies"""
+        ai_response = ai_response.strip()
+        
+        strategies = [
+            lambda s: s,
+            lambda s: s.split('```json')[-1].split('```')[0] if '```json' in s else None,
+            lambda s: s.split('```')[-2] if s.count('```') >= 2 else None,
+            lambda s: s[s.find('['):s.rfind(']')+1] if '[' in s and ']' in s else None,
+        ]
+        
+        for strategy in strategies:
+            try:
+                extracted = strategy(ai_response)
+                if not extracted:
+                    continue
+                    
+                extracted = extracted.strip()
+                if not extracted:
+                    continue
+                
+                tasks = json.loads(extracted)
+                
+                if not isinstance(tasks, list):
+                    continue
+                
+                if len(tasks) == 0:
+                    continue
+                
+                valid_tasks = []
+                for task in tasks:
+                    if not isinstance(task, dict):
+                        continue
+                    
+                    if 'type' not in task or not task['type']:
+                        task['type'] = 'chat'
+                    
+                    if 'params' not in task or not isinstance(task['params'], dict):
+                        task['params'] = {}
+                    
+                    if 'description' not in task or not task['description']:
+                        task['description'] = f"Execute {task['type']}"
+                    
+                    task_type = task['type']
+                    params = task['params']
+                    
+                    if task_type == 'create_script':
+                        params.setdefault('name', 'NewScript')
+                        params.setdefault('parent_path', 'ServerScriptService')
+                        params.setdefault('script_type', 'Script')
+                        params.setdefault('content', '')
+                    
+                    elif task_type == 'write_file':
+                        if not params.get('path'):
+                            print(f"⚠️ write_file missing path, converting to chat")
+                            task['type'] = 'chat'
+                            task['description'] = 'Unable to write file - missing path parameter. Providing guidance instead.'
+                            task['params'] = {'error': 'Missing required path parameter'}
+                        else:
+                            params.setdefault('content', '')
+                    
+                    elif task_type in ['create_roblox_objects', 'create_object']:
+                        params.setdefault('parent_path', 'Workspace')
+                        params.setdefault('object_type', 'Part')
+                        params.setdefault('name', 'NewObject')
+                        params.setdefault('properties', {})
+                    
+                    elif task_type == 'read_file':
+                        if not params.get('path'):
+                            print(f"⚠️ read_file missing path, converting to chat")
+                            task['type'] = 'chat'
+                            task['description'] = 'Unable to read file - missing path parameter. Providing guidance instead.'
+                            task['params'] = {'error': 'Missing required path parameter'}
+                    
+                    elif task_type == 'generate_game':
+                        params.setdefault('game_type', 'generic')
+                    
+                    valid_tasks.append(task)
+                
+                if valid_tasks:
+                    return valid_tasks
+                    
+            except json.JSONDecodeError:
+                continue
+            except Exception:
+                continue
+        
+        return None
     
     def _execute_task(self, task):
-        task_type = task['type']
-        params = task['params']
+        task_type = task.get('type', 'chat')
+        params = task.get('params', {})
         
         try:
             if task_type == 'create_script':
-                return self.mcp.create_script(**params)
+                name = params.get('name', 'NewScript')
+                parent_path = params.get('parent_path', 'ServerScriptService')
+                script_type = params.get('script_type', 'Script')
+                content = params.get('content', '')
+                
+                result = self.mcp.create_script(name, parent_path, script_type, content)
+                
+                if result.get('error'):
+                    return {'success': False, 'error': result.get('error')}
+                return {'success': True, 'message': f'Created {script_type} named {name}', 'result': result}
             
             elif task_type == 'read_file':
-                return self.mcp.read_file(params.get('path', ''))
+                path = params.get('path', '')
+                if not path:
+                    return {'success': False, 'error': 'No file path specified'}
+                
+                result = self.mcp.read_file(path)
+                if result.get('error'):
+                    return {'success': False, 'error': result.get('error')}
+                return {'success': True, 'content': result.get('content', ''), 'result': result}
             
             elif task_type == 'write_file':
-                return self.mcp.write_file(params.get('path', ''), params.get('content', ''))
+                path = params.get('path', '')
+                content = params.get('content', '')
+                
+                if not path:
+                    return {'success': False, 'error': 'No file path specified'}
+                
+                result = self.mcp.write_file(path, content)
+                if result.get('error'):
+                    return {'success': False, 'error': result.get('error')}
+                return {'success': True, 'message': f'Updated file {path}', 'result': result}
             
             elif task_type == 'get_file_tree':
-                return self.mcp.get_file_tree()
+                result = self.mcp.get_file_tree()
+                if result.get('error'):
+                    return {'success': False, 'error': result.get('error')}
+                return {'success': True, 'tree': result.get('tree', []), 'result': result}
             
-            elif task_type == 'create_object':
-                return self.mcp.create_roblox_objects(**params)
+            elif task_type == 'create_roblox_objects' or task_type == 'create_object':
+                parent_path = params.get('parent_path', 'Workspace')
+                object_type = params.get('object_type', 'Part')
+                name = params.get('name', 'NewObject')
+                properties = params.get('properties', {})
+                
+                result = self.mcp.create_roblox_objects(parent_path, object_type, name, properties)
+                if result.get('error'):
+                    return {'success': False, 'error': result.get('error')}
+                return {'success': True, 'message': f'Created {object_type} named {name}', 'result': result}
             
             elif task_type == 'generate_game':
-                return self._generate_game_structure(params.get('game_type', ''))
+                return self._generate_game_structure(params.get('game_type', 'generic'))
             
             elif task_type == 'create_backup':
                 backup_path = self.file_manager.create_backup()
-                return {'success': True, 'backup_path': backup_path}
+                return {'success': True, 'backup_path': backup_path, 'message': 'Backup created'}
             
             elif task_type == 'chat':
+                if params.get('error'):
+                    return {'success': False, 'type': 'chat', 'error': params.get('error'), 'is_fallback': True}
                 return {'success': True, 'type': 'chat'}
             
             else:
-                return {'error': f'Unknown task type: {task_type}'}
+                return {'success': False, 'error': f'Unknown task type: {task_type}'}
         
         except Exception as e:
-            return {'error': str(e), 'success': False}
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"Task execution error: {error_detail}")
+            return {'success': False, 'error': str(e)}
     
     def _generate_response(self, user_message, context, task_plan, execution_results):
         prompt = self._create_response_prompt(user_message, context, task_plan, execution_results)
@@ -214,87 +358,71 @@ class AgenticEngine:
             prompt += "Tasks Executed:\n"
             for i, (task, result) in enumerate(zip(task_plan, execution_results), 1):
                 prompt += f"{i}. {task['description']}: "
-                if result.get('success'):
+                if result.get('is_fallback'):
+                    prompt += f"⚠️ Skipped - {result.get('error', 'Missing required parameters')}"
+                elif result.get('success'):
                     prompt += "✅ Success"
                     if result.get('content'):
                         prompt += f"\n   Content: {str(result.get('content'))[:500]}"
+                    if result.get('message'):
+                        prompt += f"\n   {result.get('message')}"
                 else:
                     prompt += f"❌ Error - {result.get('error', 'Unknown')}"
                 prompt += "\n"
         
-        prompt += "\nProvide a helpful, detailed response to the user. If code was generated or tasks were executed, explain what was done and what the user can expect."
+        prompt += "\nProvide a helpful, detailed response to the user. "
+        prompt += "If tasks were skipped due to missing parameters, apologize and ask for the needed information. "
+        prompt += "If code was generated or tasks were executed successfully, explain what was done and what the user can expect. "
+        prompt += "Be transparent about what worked and what didn't."
         
         return prompt
     
-    def _extract_script_params(self, message):
-        name_match = re.search(r'(?:named?|called)\s+["\']?(\w+)["\']?', message, re.IGNORECASE)
-        name = name_match.group(1) if name_match else 'NewScript'
-        
-        script_type = 'Script'
-        if 'localscript' in message.lower():
-            script_type = 'LocalScript'
-        elif 'modulescript' in message.lower():
-            script_type = 'ModuleScript'
-        
-        parent_path = 'ServerScriptService'
-        if 'startergui' in message.lower():
-            parent_path = 'StarterGui'
-        elif 'starterplayer' in message.lower():
-            parent_path = 'StarterPlayer/StarterPlayerScripts'
-        elif 'replicatedstorage' in message.lower():
-            parent_path = 'ReplicatedStorage'
-        
-        return {
-            'name': name,
-            'parent_path': parent_path,
-            'script_type': script_type,
-            'content': ''
-        }
-    
-    def _extract_file_path(self, message):
-        path_match = re.search(r'["\']([^"\']+)["\']', message)
-        return {'path': path_match.group(1) if path_match else ''}
-    
-    def _extract_write_params(self, message):
-        path_match = re.search(r'["\']([^"\']+)["\']', message)
-        return {
-            'path': path_match.group(1) if path_match else '',
-            'content': ''
-        }
-    
-    def _extract_object_params(self, message):
-        name_match = re.search(r'(?:named?|called)\s+["\']?(\w+)["\']?', message, re.IGNORECASE)
-        type_match = re.search(r'(?:type|object)\s+["\']?(\w+)["\']?', message, re.IGNORECASE)
-        
-        return {
-            'parent_path': 'Workspace',
-            'object_type': type_match.group(1) if type_match else 'Part',
-            'name': name_match.group(1) if name_match else 'NewObject',
-            'properties': {}
-        }
-    
-    def _extract_game_type(self, message):
-        msg_lower = message.lower()
-        if 'obby' in msg_lower:
-            return 'obby'
-        elif 'tycoon' in msg_lower:
-            return 'tycoon'
-        elif 'rpg' in msg_lower:
-            return 'rpg'
-        elif 'simulator' in msg_lower:
-            return 'simulator'
-        return 'generic'
-    
     def _generate_game_structure(self, game_type):
         structure = generate_roblox_structure_suggestion(game_type)
-        if structure:
+        if not structure:
             return {
-                'success': True,
-                'game_type': game_type,
-                'structure': structure,
-                'message': f'Generated {game_type} game structure with folders and scripts'
+                'success': False,
+                'error': f'Unknown game type: {game_type}'
             }
+        
+        created_items = []
+        errors = []
+        
+        for folder_path in structure.get('folders', []):
+            try:
+                parts = folder_path.split('/')
+                parent = '/'.join(parts[:-1]) if len(parts) > 1 else parts[0]
+                folder_name = parts[-1]
+                
+                result = self.mcp.create_roblox_objects(parent, 'Folder', folder_name, {})
+                if result.get('error'):
+                    errors.append(f"Folder {folder_path}: {result.get('error')}")
+                else:
+                    created_items.append(f"Folder: {folder_path}")
+            except Exception as e:
+                errors.append(f"Folder {folder_path}: {str(e)}")
+        
+        for script_path, script_type in structure.get('scripts', []):
+            try:
+                parts = script_path.split('/')
+                parent = '/'.join(parts[:-1])
+                script_name = parts[-1]
+                
+                template_content = get_template('module_script', module_name=script_name, function_name='Init') if script_type == 'ModuleScript' else f'-- {script_name}\nprint("Hello from {script_name}")'
+                
+                result = self.mcp.create_script(script_name, parent, script_type, template_content)
+                if result.get('error'):
+                    errors.append(f"Script {script_path}: {result.get('error')}")
+                else:
+                    created_items.append(f"Script: {script_path} ({script_type})")
+            except Exception as e:
+                errors.append(f"Script {script_path}: {str(e)}")
+        
         return {
-            'success': False,
-            'error': f'Unknown game type: {game_type}'
+            'success': len(created_items) > 0,
+            'game_type': game_type,
+            'structure': structure,
+            'created_items': created_items,
+            'errors': errors,
+            'message': f'Generated {game_type} game structure: {len(created_items)} items created' + (f', {len(errors)} errors' if errors else '')
         }
