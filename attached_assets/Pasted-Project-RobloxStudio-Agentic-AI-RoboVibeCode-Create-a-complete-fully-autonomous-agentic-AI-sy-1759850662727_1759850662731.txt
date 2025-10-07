@@ -1,0 +1,310 @@
+Project: RobloxStudio Agentic AI - "RoboVibeCode"
+Create a complete, fully autonomous agentic AI system for Roblox Studio development that operates like Replit Agent 3 but specifically tailored for Roblox game creation. This system should enable vibecoding (autonomous development) without any human intervention.
+
+CORE REQUIREMENTS
+Project Name: RoboVibeCode
+Primary Goal: Build a replica of Agent 3's autonomous capabilities but specialized for Roblox Studio development
+Cost Constraint: Everything must be completely free - no paid services, databases, or subscriptions
+
+TECHNICAL ARCHITECTURE
+1. Technology Stack:
+
+Backend: Python (Flask/FastAPI web server)
+
+Frontend: HTML5/CSS3/JavaScript web application with real-time chat interface
+
+AI Integration: Google Gemini API (free tier)
+
+Roblox Connection: Integration with existing MCP (Model Context Protocol) server at localhost:3002
+
+File System: Local file storage only (no external databases)
+
+Platform: Windows-optimized, but web-based for cross-compatibility
+
+2. Integration Method:
+
+Connect to the existing MCP server setup for Roblox Studio communication
+
+Use MCP's HTTP endpoints for all Roblox Studio operations
+
+Implement Rojo compatibility for advanced file syncing capabilities
+
+USER INTERFACE SPECIFICATIONS
+Design: Chat-based interface identical to Replit Agent 3's user experience:
+
+Clean, modern chat UI with message bubbles
+
+Real-time streaming responses from the AI
+
+Code blocks with syntax highlighting
+
+File tree viewer showing Roblox project structure
+
+Progress indicators for multi-step operations
+
+Dark/light theme toggle
+
+Simple settings panel for API key configuration
+
+Chat Features:
+
+Natural language input for all commands
+
+Conversation history (stored locally in JSON files)
+
+Context awareness across conversations
+
+Ability to reference previous actions and decisions
+
+Real-time status updates during autonomous operations
+
+CORE AUTONOMOUS CAPABILITIES
+1. Project Analysis & Understanding:
+
+Automatically scan entire Roblox Studio project via MCP
+
+Analyze game architecture, script dependencies, and asset relationships
+
+Generate comprehensive project documentation
+
+Identify code patterns, potential issues, and optimization opportunities
+
+2. Bulk Script Operations:
+
+Mass editing of multiple scripts simultaneously
+
+Refactoring variable names, function signatures across all scripts
+
+Converting deprecated Roblox APIs to modern equivalents
+
+Implementing consistent coding standards across the project
+
+Adding error handling and logging to existing scripts
+
+3. Game Development Automation:
+
+Create complete game features from natural language descriptions
+
+Generate entire game systems (inventory, combat, economy, etc.)
+
+Build UI systems with automatic script connections
+
+Implement multiplayer networking and data persistence
+
+Create and configure Roblox objects, properties, and hierarchies
+
+4. Code Analysis & Optimization:
+
+Performance analysis and optimization suggestions
+
+Security vulnerability detection
+
+Code smell detection and automatic fixes
+
+Documentation generation for existing code
+
+Test case generation and validation
+
+5. Asset Management:
+
+Organize and restructure project folders
+
+Rename and move scripts/objects intelligently
+
+Create asset dependency maps
+
+Optimize asset usage and remove unused elements
+
+AGENTIC WORKFLOW ENGINE
+Planning System:
+
+Break down complex requests into actionable steps
+
+Generate execution plans with rollback points
+
+Prioritize tasks based on dependencies and complexity
+
+Estimate time and resource requirements
+
+Execution Engine:
+
+Execute multi-step plans autonomously
+
+Handle errors and adapt plans dynamically
+
+Provide real-time progress updates
+
+Log all actions for debugging and rollback
+
+Context Management:
+
+Maintain project state across conversations
+
+Remember user preferences and coding styles
+
+Track project history and changes
+
+Understand Roblox-specific best practices and patterns
+
+MCP INTEGRATION DETAILS
+Required MCP Endpoints to Utilize:
+
+get_file_tree - Project structure analysis
+
+read_file - Script content reading
+
+write_file - Script editing and creation
+
+create_script - New script generation
+
+delete_file - File cleanup operations
+
+move_file - File organization
+
+get_roblox_objects - Studio object inspection
+
+modify_object_properties - Object property editing
+
+create_roblox_objects - New object creation
+
+Communication Protocol:
+
+HTTP REST API calls to localhost:3002
+
+JSON payload formatting for all requests
+
+Error handling and retry logic
+
+Connection status monitoring
+
+GEMINI AI INTEGRATION
+API Configuration:
+
+Support for Google Gemini Pro API (free tier)
+
+Configurable API key input in settings
+
+Rate limiting and quota management
+
+Fallback error handling for API failures
+
+Prompt Engineering:
+
+Specialized prompts for Roblox Lua scripting
+
+Context injection with project structure
+
+Multi-turn conversation support
+
+Code generation optimization for Roblox environment
+
+AUTONOMOUS OPERATION FEATURES
+Full Independence Mode:
+
+Execute complex multi-hour development tasks without intervention
+
+Make architectural decisions based on best practices
+
+Handle unexpected errors and find solutions
+
+Adapt to changing requirements during execution
+
+Generate progress reports and summaries
+
+Safety & Rollback (File-Based):
+
+Create local backup snapshots before major changes (stored as timestamped folders)
+
+Implement simple rollback to previous project states
+
+Change tracking and diff visualization
+
+Undo last action capability
+
+Safety confirmations for potentially destructive operations
+
+SPECIFIC FEATURES TO IMPLEMENT
+1. Game Genre Templates:
+
+Obby (obstacle course) generator
+
+Tycoon system builder
+
+RPG framework creator
+
+Simulator game template
+
+Battle royale foundation
+
+2. Roblox-Specific Knowledge:
+
+Understanding of Roblox services (ReplicatedStorage, ServerScriptService, etc.)
+
+RemoteEvent and RemoteFunction implementation
+
+DataStore integration for data persistence
+
+GUI creation with proper hierarchy
+
+Physics and collision optimization
+
+3. Advanced Automation:
+
+Automatic script organization by functionality
+
+Smart variable naming based on context
+
+Event system generation and management
+
+Player data management implementation
+
+Server-client communication setup
+
+IMPLEMENTATION STRUCTURE
+text
+RoboVibeCode/
+├── backend/
+│   ├── app.py (Flask/FastAPI server)
+│   ├── mcp_client.py (MCP communication)
+│   ├── gemini_client.py (AI integration)
+│   ├── agentic_engine.py (autonomous workflow)
+│   ├── roblox_knowledge.py (Roblox-specific logic)
+│   └── file_manager.py (local storage & backups)
+├── frontend/
+│   ├── index.html (main chat interface)
+│   ├── style.css (modern UI styling)
+│   ├── script.js (real-time communication)
+│   └── components/ (UI components)
+├── config/
+│   ├── settings.json (user configuration)
+│   └── templates/ (game templates)
+└── backups/ (automatic project backups)
+SUCCESS CRITERIA
+The completed system should be able to:
+
+Receive a high-level request like "Create a complete obby game with 20 levels, leaderboards, and checkpoints"
+
+Autonomously plan the entire development process
+
+Execute the plan without human intervention, creating all necessary scripts, objects, and UI
+
+Test and validate the implementation
+
+Provide a complete, playable Roblox game ready for publishing
+
+FINAL SPECIFICATIONS
+Launch Method: Single Python command to start web server
+
+Access: Web browser at localhost:5000
+
+Dependencies: Only free Python packages and libraries
+
+Configuration: Simple API key input in web interface
+
+Storage: All data stored locally in project folder
+
+Performance: Optimized for Windows systems
+
+Documentation: Include README with setup instructions
+
+BUILD THIS COMPLETE SYSTEM NOW with all specified features, ensuring it operates as a true autonomous agent capable of creating entire Roblox games from natural language descriptions.
