@@ -261,6 +261,31 @@ function newConversation() {
     `;
 }
 
+async function reconnectMCP() {
+    const mcpStatus = document.getElementById('mcp-status');
+    mcpStatus.textContent = '🔄 Connecting...';
+    mcpStatus.style.color = 'var(--text-secondary)';
+    
+    try {
+        const response = await fetch('/api/mcp-status');
+        const data = await response.json();
+        
+        if (data.connected) {
+            mcpStatus.textContent = '🟢 Connected';
+            mcpStatus.style.color = 'var(--success-color)';
+            alert('Successfully connected to MCP server!');
+        } else {
+            mcpStatus.textContent = '🔴 Disconnected';
+            mcpStatus.style.color = 'var(--error-color)';
+            alert('Failed to connect to MCP server. Make sure it is running on the configured URL.');
+        }
+    } catch (error) {
+        mcpStatus.textContent = '🔴 Disconnected';
+        mcpStatus.style.color = 'var(--error-color)';
+        alert('Error connecting to MCP server: ' + error.message);
+    }
+}
+
 document.getElementById('user-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
