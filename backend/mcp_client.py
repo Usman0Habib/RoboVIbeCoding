@@ -106,20 +106,31 @@ class MCPClient:
     
     def create_roblox_objects(self, parent_path, object_type, name, properties=None):
         try:
-            response = requests.post(
-                f"{self.base_url}/create_roblox_objects",
-                json={
-                    'parent_path': parent_path,
-                    'object_type': object_type,
-                    'name': name,
-                    'properties': properties or {}
-                },
-                timeout=30
-            )
+            url = f"{self.base_url}/create_roblox_objects"
+            payload = {
+                'parent_path': parent_path,
+                'object_type': object_type,
+                'name': name,
+                'properties': properties or {}
+            }
+            print(f"🔌 MCP Request: POST {url}")
+            print(f"📦 Payload: {payload}")
+            
+            response = requests.post(url, json=payload, timeout=30)
+            
+            print(f"📡 Response Status: {response.status_code}")
+            print(f"📄 Response: {response.text[:500]}")
+            
             response.raise_for_status()
             return response.json()
+        except requests.exceptions.HTTPError as e:
+            error_msg = f'HTTP {e.response.status_code} error: {e.response.text[:200]}'
+            print(f"❌ MCP Error: {error_msg}")
+            return {'error': error_msg}
         except Exception as e:
-            return {'error': f'Failed to create roblox object: {str(e)}'}
+            error_msg = f'Failed to create roblox object: {str(e)}'
+            print(f"❌ MCP Error: {error_msg}")
+            return {'error': error_msg}
     
     def modify_object_properties(self, path, properties):
         try:
