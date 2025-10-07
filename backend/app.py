@@ -92,6 +92,7 @@ def settings():
     if request.method == 'GET':
         settings = file_manager.load_settings()
         settings.pop('gemini_api_key', None)
+        settings['gemini_configured'] = gemini_client.configured
         return jsonify({
             'success': True,
             'settings': settings
@@ -101,7 +102,16 @@ def settings():
         file_manager.save_settings(data)
         
         if 'gemini_api_key' in data:
-            gemini_client.set_api_key(data['gemini_api_key'])
+            try:
+                gemini_client.set_api_key(data['gemini_api_key'])
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 400
+        
+        if 'mcp_url' in data:
+            mcp_client.base_url = data['mcp_url']
         
         return jsonify({
             'success': True,

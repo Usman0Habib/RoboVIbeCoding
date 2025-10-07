@@ -29,7 +29,7 @@ async function checkStatus() {
         const settingsData = await settingsResponse.json();
         
         const geminiStatus = document.getElementById('gemini-status');
-        if (settingsData.settings && settingsData.settings.gemini_api_key) {
+        if (settingsData.settings && settingsData.settings.gemini_configured) {
             geminiStatus.textContent = '🟢 Configured';
             geminiStatus.style.color = 'var(--success-color)';
         } else {
