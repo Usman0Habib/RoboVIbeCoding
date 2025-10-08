@@ -5,10 +5,11 @@ class MCPClient:
     def __init__(self, base_url='http://localhost:3002'):
         self.base_url = base_url
         self.connected = False
+        self.headers = {'ngrok-skip-browser-warning': 'true'}
     
     def check_connection(self):
         try:
-            response = requests.get(f"{self.base_url}/health", timeout=2)
+            response = requests.get(f"{self.base_url}/health", headers=self.headers, timeout=2)
             self.connected = response.status_code == 200
             return self.connected
         except:
@@ -21,6 +22,7 @@ class MCPClient:
             response = requests.post(
                 f"{self.base_url}/mcp/get_file_tree",
                 json={},
+                headers=self.headers,
                 timeout=10
             )
             response.raise_for_status()
@@ -183,8 +185,8 @@ class MCPClient:
     def create_object_with_properties(self, class_name, parent_path, name=None, properties=None):
         try:
             payload = {
-                'class_name': class_name,
-                'parent_path': parent_path
+                'className': class_name,
+                'parent': parent_path
             }
             if name:
                 payload['name'] = name
