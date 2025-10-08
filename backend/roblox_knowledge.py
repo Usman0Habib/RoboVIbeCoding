@@ -111,7 +111,147 @@ function {module_name}.{function_name}(...)
 end
 
 return {module_name}''',
+    
+    'checkpoint_system': '''-- Checkpoint System for Obby Games
+local Players = game:GetService("Players")
+local checkpoints = workspace:WaitForChild("Checkpoints"):GetChildren()
+
+-- Sort checkpoints by name
+table.sort(checkpoints, function(a, b)
+    return tonumber(a.Name:match("%d+")) < tonumber(b.Name:match("%d+"))
+end)
+
+local playerCheckpoints = {}
+
+Players.PlayerAdded:Connect(function(player)
+    playerCheckpoints[player.UserId] = 1
+    
+    player.CharacterAdded:Connect(function(character)
+        local humanoid = character:WaitForChild("Humanoid")
+        local hrp = character:WaitForChild("HumanoidRootPart")
+        
+        -- Teleport to last checkpoint
+        local checkpointIndex = playerCheckpoints[player.UserId] or 1
+        if checkpoints[checkpointIndex] then
+            hrp.CFrame = checkpoints[checkpointIndex].CFrame + Vector3.new(0, 3, 0)
+        end
+        
+        -- Death handling
+        humanoid.Died:Connect(function()
+            task.wait(2)
+            player:LoadCharacter()
+        end)
+    end)
+end)
+
+-- Checkpoint touch detection
+for i, checkpoint in ipairs(checkpoints) do
+    checkpoint.Touched:Connect(function(hit)
+        local character = hit.Parent
+        local player = Players:GetPlayerFromCharacter(character)
+        
+        if player and playerCheckpoints[player.UserId] == i then
+            playerCheckpoints[player.UserId] = i + 1
+            checkpoint.BrickColor = BrickColor.new("Bright green")
+            checkpoint.Material = Enum.Material.Neon
+        end
+    end)
+end''',
+    
+    'tween_service_movement': '''local TweenService = game:GetService("TweenService")
+
+local function MovePart(part, targetCFrame, duration)
+    local tweenInfo = TweenInfo.new(
+        duration,
+        Enum.EasingStyle.Quad,
+        Enum.EasingDirection.InOut
+    )
+    
+    local tween = TweenService:Create(part, tweenInfo, {CFrame = targetCFrame})
+    tween:Play()
+    
+    return tween
+end
+
+-- Example usage:
+-- MovePart(workspace.MovingPlatform, CFrame.new(0, 10, 0), 2)''',
+    
+    'kill_brick': '''-- Kill brick that respawns player
+local killBrick = script.Parent
+
+killBrick.Touched:Connect(function(hit)
+    local humanoid = hit.Parent:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.Health = 0
+    end
+end)''',
 }
+
+# Property templates for common objects with correct types
+ROBLOX_PROPERTY_TEMPLATES = {
+    'Part': {
+        'default': {
+            'Anchored': True,
+            'Size': [4, 1, 4],
+            'BrickColor': 'Medium stone grey',
+            'Material': 'Plastic'
+        },
+        'platform': {
+            'Anchored': True,
+            'Size': [10, 1, 10],
+            'BrickColor': 'Bright blue',
+            'Material': 'Plastic',
+            'TopSurface': 'Smooth',
+            'BottomSurface': 'Smooth'
+        },
+        'wall': {
+            'Anchored': True,
+            'Size': [1, 10, 20],
+            'BrickColor': 'Brick yellow',
+            'Material': 'Brick'
+        },
+        'kill_brick': {
+            'Anchored': True,
+            'Size': [10, 1, 10],
+            'BrickColor': 'Really red',
+            'Material': 'Neon',
+            'Transparency': 0.3
+        }
+    },
+    'SpawnLocation': {
+        'default': {
+            'Anchored': True,
+            'Size': [6, 1, 6],
+            'BrickColor': 'Bright green',
+            'Material': 'Plastic',
+            'Transparency': 0,
+            'Duration': 0,
+            'Neutral': False
+        }
+    },
+    'Script': {
+        'default': {
+            'Source': '-- Script content here'
+        }
+    },
+    'LocalScript': {
+        'default': {
+            'Source': '-- LocalScript content here'
+        }
+    },
+    'ModuleScript': {
+        'default': {
+            'Source': 'local module = {}\n\nreturn module'
+        }
+    }
+}
+
+def get_property_template(object_type, template_name='default'):
+    """Get property template for an object type"""
+    if object_type in ROBLOX_PROPERTY_TEMPLATES:
+        templates = ROBLOX_PROPERTY_TEMPLATES[object_type]
+        return templates.get(template_name, templates.get('default', {}))
+    return {}
 
 def get_roblox_context():
     return ROBLOX_SYSTEM_PROMPT
