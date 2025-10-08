@@ -138,8 +138,8 @@ Available Actions:
 3. create_roblox_objects - Create Roblox objects
    Required params: parent_path (string), object_type (string), name (string), properties (object)
 
-4. read_file - Read file content
-   Required params: path (string)
+4. read_script - Read script source code
+   Required params: path (string - full instance path like "ServerScriptService.MyScript")
 
 5. generate_game - Generate complete game template
    Required params: game_type ("obby"|"tycoon"|"rpg"|"simulator")
@@ -248,11 +248,11 @@ Now analyze the user request and return the JSON array:"""
                         params.setdefault('name', 'NewObject')
                         params.setdefault('properties', {})
                     
-                    elif task_type == 'read_file':
+                    elif task_type in ['read_file', 'read_script']:
                         if not params.get('path'):
-                            print(f"⚠️ read_file missing path, converting to chat")
+                            print(f"⚠️ read_script missing path, converting to chat")
                             task['type'] = 'chat'
-                            task['description'] = 'Unable to read file - missing path parameter. Providing guidance instead.'
+                            task['description'] = 'Unable to read script - missing path parameter. Providing guidance instead.'
                             task['params'] = {'error': 'Missing required path parameter'}
                     
                     elif task_type == 'generate_game':
@@ -287,15 +287,17 @@ Now analyze the user request and return the JSON array:"""
                     return {'success': False, 'error': result.get('error')}
                 return {'success': True, 'message': f'Created {script_type} named {name}', 'result': result}
             
-            elif task_type == 'read_file':
+            elif task_type == 'read_file' or task_type == 'read_script':
                 path = params.get('path', '')
                 if not path:
                     return {'success': False, 'error': 'No file path specified'}
                 
-                result = self.mcp.read_file(path)
+                result = self.mcp.get_script_source(path)
                 if result.get('error'):
                     return {'success': False, 'error': result.get('error')}
-                return {'success': True, 'content': result.get('content', ''), 'result': result}
+                
+                source = result.get('content', [{}])[0].get('text', '') if isinstance(result.get('content'), list) else result.get('source', '')
+                return {'success': True, 'content': source, 'result': result}
             
             elif task_type == 'write_file':
                 path = params.get('path', '')

@@ -252,6 +252,35 @@ class MCPClient:
         except Exception as e:
             return {'error': f'Failed to get project structure: {str(e)}'}
     
+    # Script Management Tools
+    def get_script_source(self, instance_path):
+        """Get the source code of a script"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/get_script_source",
+                json={'instancePath': instance_path},
+                headers=self.headers,
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to get script source: {str(e)}'}
+    
+    def set_script_source(self, instance_path, source):
+        """Set the source code of a script"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/set_script_source",
+                json={'instancePath': instance_path, 'source': source},
+                headers=self.headers,
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to set script source: {str(e)}'}
+    
     # Legacy method for backward compatibility - now uses create_object
     def create_script(self, name, parent_path, script_type='Script', content=''):
         """Create a script using create_object_with_properties"""
