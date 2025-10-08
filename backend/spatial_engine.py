@@ -217,7 +217,7 @@ class SpatialEngine:
             'className': 'Part',
             'parent': 'Workspace',
             'properties': {
-                'CFrame': [0, 0.5, 0],
+                'CFrame': SpatialEngine.vector3_to_cframe(0, 0.5, 0),
                 'Size': [base_size[0], 1, base_size[2]],
                 'BrickColor': 'Dark stone grey',
                 'Material': 'Concrete',
@@ -235,7 +235,7 @@ class SpatialEngine:
             'className': 'Part',
             'parent': 'Workspace',
             'properties': {
-                'CFrame': [0, wall_height/2, -base_size[2]/2],
+                'CFrame': SpatialEngine.vector3_to_cframe(0, wall_height/2, -base_size[2]/2),
                 'Size': [base_size[0], wall_height, wall_thickness],
                 'BrickColor': 'Brick yellow',
                 'Material': 'Brick',
@@ -249,7 +249,7 @@ class SpatialEngine:
             'className': 'Part',
             'parent': 'Workspace',
             'properties': {
-                'CFrame': [0, wall_height/2, base_size[2]/2],
+                'CFrame': SpatialEngine.vector3_to_cframe(0, wall_height/2, base_size[2]/2),
                 'Size': [base_size[0], wall_height, wall_thickness],
                 'BrickColor': 'Brick yellow',
                 'Material': 'Brick',
@@ -263,7 +263,7 @@ class SpatialEngine:
             'className': 'Part',
             'parent': 'Workspace',
             'properties': {
-                'CFrame': [-base_size[0]/2, wall_height/2, 0],
+                'CFrame': SpatialEngine.vector3_to_cframe(-base_size[0]/2, wall_height/2, 0),
                 'Size': [wall_thickness, wall_height, base_size[2]],
                 'BrickColor': 'Brick yellow',
                 'Material': 'Brick',
@@ -277,7 +277,7 @@ class SpatialEngine:
             'className': 'Part',
             'parent': 'Workspace',
             'properties': {
-                'CFrame': [base_size[0]/2, wall_height/2, 0],
+                'CFrame': SpatialEngine.vector3_to_cframe(base_size[0]/2, wall_height/2, 0),
                 'Size': [wall_thickness, wall_height, base_size[2]],
                 'BrickColor': 'Brick yellow',
                 'Material': 'Brick',
@@ -291,7 +291,7 @@ class SpatialEngine:
             'className': 'WedgePart',
             'parent': 'Workspace',
             'properties': {
-                'CFrame': [0, wall_height + config['roof_height']/2, 0],
+                'CFrame': SpatialEngine.vector3_to_cframe(0, wall_height + config['roof_height']/2, 0),
                 'Size': [base_size[0], config['roof_height'], base_size[2]],
                 'BrickColor': 'Dark orange',
                 'Material': 'Slate',
@@ -321,7 +321,7 @@ class SpatialEngine:
                 'className': 'Part',
                 'parent': 'Workspace',
                 'properties': {
-                    'CFrame': [0, y_pos, 0],
+                    'CFrame': SpatialEngine.vector3_to_cframe(0, y_pos, 0),
                     'Size': [config['base'], 1, config['base']],
                     'BrickColor': 'Medium stone grey' if floor % 2 == 0 else 'Dark stone grey',
                     'Material': 'Concrete',
@@ -376,14 +376,22 @@ class SpatialEngine:
         Calculate spawn location above a platform
         
         Args:
-            platform_cframe: [x, y, z] position of platform
+            platform_cframe: CFrame dict with position/orientation (Rojo v7 format)
             platform_size: [x, y, z] size of platform
         
         Returns:
             CFrame for SpawnLocation
         """
+        # Extract position from Rojo v7 format
+        if isinstance(platform_cframe, dict) and 'position' in platform_cframe:
+            pos = platform_cframe['position']
+            x, y, z = pos[0], pos[1], pos[2]
+        else:
+            # Fallback for old format
+            x, y, z = platform_cframe[0], platform_cframe[1], platform_cframe[2]
+        
         return SpatialEngine.vector3_to_cframe(
-            platform_cframe[0],
-            platform_cframe[1] + platform_size[1]/2 + 2.5,  # 2.5 studs above platform
-            platform_cframe[2]
+            x,
+            y + platform_size[1]/2 + 2.5,  # 2.5 studs above platform
+            z
         )

@@ -217,6 +217,15 @@ class MCPClient:
     
     def mass_create_objects_with_properties(self, objects_data):
         try:
+            # Debug: Log actual JSON being sent to MCP
+            print(f"\n=== MCP REQUEST DEBUG ===")
+            print(f"Sending {len(objects_data)} objects to MCP server:")
+            for i, obj in enumerate(objects_data[:2]):  # Show first 2
+                print(f"  Object {i+1}:")
+                print(f"    Name: {obj.get('name', 'N/A')}")
+                print(f"    CFrame: {obj.get('properties', {}).get('CFrame', 'N/A')}")
+            print(f"=== END DEBUG ===\n")
+            
             response = requests.post(
                 f"{self.base_url}/mcp/mass_create_objects_with_properties",
                 json={'objects': objects_data},
