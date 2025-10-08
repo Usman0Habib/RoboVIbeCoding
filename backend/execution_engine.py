@@ -70,6 +70,13 @@ class ExecutionEngine:
                 return True, result, ""
                 
             elif task_type == 'mass_create_objects_with_properties':
+                # Debug: Print what we're sending
+                objects = params.get('objects', [])
+                print(f"  Creating {len(objects)} objects:")
+                for i, obj in enumerate(objects[:3]):  # Show first 3
+                    cframe = obj.get('properties', {}).get('CFrame', 'N/A')
+                    print(f"    {obj.get('name', 'Unknown')} at CFrame: {cframe}")
+                
                 result = self.mcp.call_tool('mass_create_objects_with_properties', params)
                 return True, result, ""
                 

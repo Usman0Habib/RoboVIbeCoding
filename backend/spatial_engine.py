@@ -11,8 +11,15 @@ class SpatialEngine:
     
     @staticmethod
     def vector3_to_cframe(x, y, z):
-        """Convert Vector3 position to CFrame format for Roblox"""
-        return [x, y, z]
+        """Convert Vector3 position to CFrame format for Roblox (Rojo v7 format)"""
+        return {
+            "position": [float(x), float(y), float(z)],
+            "orientation": [
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0]
+            ]
+        }
     
     @staticmethod
     def calculate_obby_platforms(num_platforms, difficulty='medium'):
