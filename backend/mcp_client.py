@@ -18,7 +18,7 @@ class MCPClient:
     def get_file_tree(self):
         try:
             response = requests.post(
-                f"{self.base_url}/get_file_tree",
+                f"{self.base_url}/mcp/get_file_tree",
                 json={},
                 timeout=10
             )
@@ -30,7 +30,7 @@ class MCPClient:
     def read_file(self, path):
         try:
             response = requests.post(
-                f"{self.base_url}/read_file",
+                f"{self.base_url}/mcp/read_file",
                 json={'path': path},
                 timeout=10
             )
@@ -42,7 +42,7 @@ class MCPClient:
     def write_file(self, path, content):
         try:
             response = requests.post(
-                f"{self.base_url}/write_file",
+                f"{self.base_url}/mcp/write_file",
                 json={'path': path, 'content': content},
                 timeout=30
             )
@@ -54,7 +54,7 @@ class MCPClient:
     def create_script(self, name, parent_path, script_type='Script', content=''):
         try:
             response = requests.post(
-                f"{self.base_url}/create_script",
+                f"{self.base_url}/mcp/create_script",
                 json={
                     'name': name,
                     'parent_path': parent_path,
@@ -71,7 +71,7 @@ class MCPClient:
     def delete_file(self, path):
         try:
             response = requests.post(
-                f"{self.base_url}/delete_file",
+                f"{self.base_url}/mcp/delete_file",
                 json={'path': path},
                 timeout=10
             )
@@ -83,7 +83,7 @@ class MCPClient:
     def move_file(self, source_path, dest_path):
         try:
             response = requests.post(
-                f"{self.base_url}/move_file",
+                f"{self.base_url}/mcp/move_file",
                 json={'source_path': source_path, 'dest_path': dest_path},
                 timeout=10
             )
@@ -95,7 +95,7 @@ class MCPClient:
     def get_roblox_objects(self, path=''):
         try:
             response = requests.post(
-                f"{self.base_url}/get_roblox_objects",
+                f"{self.base_url}/mcp/get_roblox_objects",
                 json={'path': path},
                 timeout=10
             )
@@ -137,7 +137,7 @@ class MCPClient:
     def modify_object_properties(self, path, properties):
         try:
             response = requests.post(
-                f"{self.base_url}/modify_object_properties",
+                f"{self.base_url}/mcp/modify_object_properties",
                 json={'path': path, 'properties': properties},
                 timeout=30
             )
