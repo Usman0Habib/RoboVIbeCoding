@@ -15,6 +15,7 @@ class MCPClient:
             self.connected = False
             return False
     
+    # File System Tools
     def get_file_tree(self):
         try:
             response = requests.post(
@@ -27,121 +28,240 @@ class MCPClient:
         except Exception as e:
             return {'error': f'Failed to get file tree: {str(e)}', 'tree': []}
     
-    def read_file(self, path):
+    def search_files(self, query, file_type=None):
         try:
             response = requests.post(
-                f"{self.base_url}/mcp/read_file",
+                f"{self.base_url}/mcp/search_files",
+                json={'query': query, 'file_type': file_type},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to search files: {str(e)}'}
+    
+    # Studio Context Tools
+    def get_place_info(self):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/get_place_info",
+                json={},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to get place info: {str(e)}'}
+    
+    def get_services(self):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/get_services",
+                json={},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to get services: {str(e)}'}
+    
+    def search_objects(self, query, search_type='name'):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/search_objects",
+                json={'query': query, 'search_type': search_type},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to search objects: {str(e)}'}
+    
+    # Instance & Property Tools
+    def get_instance_properties(self, path):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/get_instance_properties",
                 json={'path': path},
                 timeout=10
             )
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            return {'error': f'Failed to read file: {str(e)}'}
+            return {'error': f'Failed to get instance properties: {str(e)}'}
     
-    def write_file(self, path, content):
+    def get_instance_children(self, path):
         try:
             response = requests.post(
-                f"{self.base_url}/mcp/write_file",
-                json={'path': path, 'content': content},
+                f"{self.base_url}/mcp/get_instance_children",
+                json={'path': path},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to get instance children: {str(e)}'}
+    
+    def search_by_property(self, property_name, property_value):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/search_by_property",
+                json={'property_name': property_name, 'property_value': property_value},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to search by property: {str(e)}'}
+    
+    def get_class_info(self, class_name):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/get_class_info",
+                json={'class_name': class_name},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to get class info: {str(e)}'}
+    
+    # Property Modification Tools
+    def set_property(self, path, property_name, property_value):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/set_property",
+                json={'path': path, 'property_name': property_name, 'property_value': property_value},
                 timeout=30
             )
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            return {'error': f'Failed to write file: {str(e)}'}
+            return {'error': f'Failed to set property: {str(e)}'}
     
+    def mass_set_property(self, paths, property_name, property_value):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/mass_set_property",
+                json={'paths': paths, 'property_name': property_name, 'property_value': property_value},
+                timeout=30
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to mass set property: {str(e)}'}
+    
+    def mass_get_property(self, paths, property_name):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/mass_get_property",
+                json={'paths': paths, 'property_name': property_name},
+                timeout=30
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to mass get property: {str(e)}'}
+    
+    # Object Creation Tools
+    def create_object(self, class_name, parent_path, name=None):
+        try:
+            payload = {'class_name': class_name, 'parent_path': parent_path}
+            if name:
+                payload['name'] = name
+            
+            response = requests.post(
+                f"{self.base_url}/mcp/create_object",
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to create object: {str(e)}'}
+    
+    def create_object_with_properties(self, class_name, parent_path, name=None, properties=None):
+        try:
+            payload = {
+                'class_name': class_name,
+                'parent_path': parent_path
+            }
+            if name:
+                payload['name'] = name
+            if properties:
+                payload['properties'] = properties
+            
+            response = requests.post(
+                f"{self.base_url}/mcp/create_object_with_properties",
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to create object with properties: {str(e)}'}
+    
+    def mass_create_objects(self, objects_data):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/mass_create_objects",
+                json={'objects': objects_data},
+                timeout=60
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to mass create objects: {str(e)}'}
+    
+    def mass_create_objects_with_properties(self, objects_data):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/mass_create_objects_with_properties",
+                json={'objects': objects_data},
+                timeout=60
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to mass create objects with properties: {str(e)}'}
+    
+    def delete_object(self, path):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/delete_object",
+                json={'path': path},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to delete object: {str(e)}'}
+    
+    # Project Analysis Tools
+    def get_project_structure(self, depth=5):
+        try:
+            response = requests.post(
+                f"{self.base_url}/mcp/get_project_structure",
+                json={'depth': depth},
+                timeout=30
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {'error': f'Failed to get project structure: {str(e)}'}
+    
+    # Legacy method for backward compatibility - now uses create_object
     def create_script(self, name, parent_path, script_type='Script', content=''):
-        try:
-            response = requests.post(
-                f"{self.base_url}/mcp/create_script",
-                json={
-                    'name': name,
-                    'parent_path': parent_path,
-                    'script_type': script_type,
-                    'content': content
-                },
-                timeout=30
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            return {'error': f'Failed to create script: {str(e)}'}
-    
-    def delete_file(self, path):
-        try:
-            response = requests.post(
-                f"{self.base_url}/mcp/delete_file",
-                json={'path': path},
-                timeout=10
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            return {'error': f'Failed to delete file: {str(e)}'}
-    
-    def move_file(self, source_path, dest_path):
-        try:
-            response = requests.post(
-                f"{self.base_url}/mcp/move_file",
-                json={'source_path': source_path, 'dest_path': dest_path},
-                timeout=10
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            return {'error': f'Failed to move file: {str(e)}'}
-    
-    def get_roblox_objects(self, path=''):
-        try:
-            response = requests.post(
-                f"{self.base_url}/mcp/get_roblox_objects",
-                json={'path': path},
-                timeout=10
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            return {'error': f'Failed to get roblox objects: {str(e)}', 'objects': []}
-    
-    def create_roblox_object_via_script(self, object_type, name, properties=None):
-        """Create Roblox objects by injecting a Lua script that creates them"""
-        from roblox_templates import get_object_creation_script
+        """Create a script using create_object_with_properties"""
+        properties = {}
+        if content:
+            properties['Source'] = content
         
-        properties = properties or {}
+        result = self.create_object_with_properties(
+            class_name=script_type,
+            parent_path=parent_path,
+            name=name,
+            properties=properties
+        )
         
-        script_content = get_object_creation_script(object_type, name, properties)
-        
-        script_name = f"Create_{name.replace(' ', '_')}"
-        parent_path = "ServerScriptService"
-        
-        print(f"🔌 Creating {object_type} '{name}' via script injection")
-        print(f"📜 Script: {script_name}")
-        print(f"📝 Content preview: {script_content[:200]}...")
-        
-        result = self.create_script(script_name, parent_path, "Script", script_content)
-        
-        if result.get('error'):
-            print(f"❌ Failed to create object script: {result.get('error')}")
-            return {'error': f"Failed to create {object_type}: {result.get('error')}"}
-        
-        print(f"✅ Successfully created script to generate {object_type} '{name}'")
-        return {
-            'success': True,
-            'message': f"Created {object_type} '{name}' in Roblox Studio",
-            'script_name': script_name,
-            'object_type': object_type,
-            'object_name': name
-        }
-    
-    def modify_object_properties(self, path, properties):
-        try:
-            response = requests.post(
-                f"{self.base_url}/mcp/modify_object_properties",
-                json={'path': path, 'properties': properties},
-                timeout=30
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            return {'error': f'Failed to modify object properties: {str(e)}'}
+        return result
