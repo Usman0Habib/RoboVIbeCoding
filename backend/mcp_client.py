@@ -301,7 +301,11 @@ class MCPClient:
         """Generic method to call any MCP tool by name"""
         
         tool_map = {
-            'create_object': self.create_object,
+            'create_object': lambda p: self.create_object(
+                p.get('className') or p.get('class_name'),
+                p.get('parent') or p.get('parent_path'),
+                p.get('name')
+            ),
             'create_object_with_properties': lambda p: self.create_object_with_properties(
                 p.get('className'), 
                 p.get('parent'), 
