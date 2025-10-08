@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from mcp_client import MCPClient
 from gemini_client import GeminiClient
-from agentic_engine import AgenticEngine
+from agentic_engine_enhanced import EnhancedAgenticEngine
 from file_manager import FileManager
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
@@ -15,7 +15,7 @@ mcp_url = os.environ.get('MCP_URL', 'https://jaunita-draughtier-doggedly.ngrok-f
 mcp_client = MCPClient(base_url=mcp_url)
 gemini_client = GeminiClient()
 file_manager = FileManager()
-agentic_engine = AgenticEngine(mcp_client, gemini_client, file_manager)
+agentic_engine = EnhancedAgenticEngine(mcp_client, gemini_client, file_manager)
 
 @app.route('/')
 def index():

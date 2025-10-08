@@ -66,6 +66,77 @@ class EnhancedAgenticEngine:
         
         self.context_history = {}
     
+    def process_message(self, user_message, conversation_id):
+        """
+        Non-streaming version for API compatibility
+        """
+        if conversation_id not in self.context_history:
+            self.context_history[conversation_id] = []
+        
+        self.context_history[conversation_id].append({
+            'role': 'user',
+            'content': user_message
+        })
+        
+        # Build context
+        context = self._build_enhanced_context(conversation_id, user_message)
+        
+        # Handle simple requests
+        simple_result = self._handle_simple_requests(user_message)
+        if simple_result:
+            result = self._execute_simple_task_sync(simple_result)
+            self.context_history[conversation_id].append({
+                'role': 'assistant',
+                'content': result
+            })
+            return result
+        
+        # Create plan and execute
+        try:
+            task_plan = self.planner.create_advanced_plan(user_message, context)
+            execution_result = self.executor.execute_plan_with_recovery(task_plan)
+            
+            # Generate summary
+            summary = self._generate_fallback_summary(task_plan, execution_result)
+            self.context_history[conversation_id].append({
+                'role': 'assistant',
+                'content': summary
+            })
+            return summary
+            
+        except Exception as e:
+            error_msg = f"Error: {str(e)}"
+            self.context_history[conversation_id].append({
+                'role': 'assistant',
+                'content': error_msg
+            })
+            return error_msg
+    
+    def _execute_simple_task_sync(self, task):
+        """Execute simple task synchronously"""
+        task_type = task.get('type')
+        params = task.get('params', {})
+        
+        if task_type == 'get_file_tree':
+            result = self.mcp.get_file_tree()
+            if result.get('error'):
+                return f"Error: {result.get('error')}"
+            else:
+                tree_visual = format_tree_visual(result.get('tree', []))
+                return f"Here's your project structure:\n\n```\n{tree_visual}\n```"
+        
+        elif task_type == 'read_script':
+            path = params.get('path', '')
+            result = self.mcp.get_script_source(path)
+            
+            if result.get('error'):
+                return f"Error reading script: {result.get('error')}"
+            else:
+                source = result.get('content', [{}])[0].get('text', '') if isinstance(result.get('content'), list) else result.get('source', '')
+                return f"Here's the content of `{path}`:\n\n```lua\n{source}\n```"
+        
+        return "Task completed"
+    
     def process_message_stream(self, user_message, conversation_id):
         """
         Process user message with streaming response using enhanced AI capabilities

@@ -25,7 +25,7 @@ class ExecutionEngine:
             (success: bool, result: Any, message: str)
         """
         
-        task_type = task.get('type')
+        task_type = task.get('type', 'chat')
         params = task.get('params', {})
         description = task.get('description', 'Unknown task')
         
@@ -250,7 +250,7 @@ class ExecutionEngine:
             'errors': errors
         }
     
-    def _attempt_fix(self, task: Dict, error_message: str) -> Dict:
+    def _attempt_fix(self, task: Dict, error_message: str) -> Dict | None:
         """Attempt to fix a failed task based on error message"""
         
         # Common fixes
