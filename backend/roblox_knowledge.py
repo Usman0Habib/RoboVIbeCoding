@@ -258,7 +258,11 @@ def get_roblox_context():
 
 def get_template(template_name, **kwargs):
     if template_name in ROBLOX_CODE_TEMPLATES:
-        return ROBLOX_CODE_TEMPLATES[template_name].format(**kwargs)
+        template = ROBLOX_CODE_TEMPLATES[template_name]
+        # Only format if kwargs are provided, otherwise return as-is
+        if kwargs:
+            return template.format(**kwargs)
+        return template
     return None
 
 def generate_roblox_structure_suggestion(game_type):
