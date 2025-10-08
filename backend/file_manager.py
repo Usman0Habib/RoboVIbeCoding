@@ -22,7 +22,7 @@ class FileManager:
                 return json.load(f)
         return {
             'theme': 'dark',
-            'mcp_url': 'http://localhost:3002',
+            'mcp_url': 'https://jaunita-draughtier-doggedly.ngrok-free.dev',
             'gemini_api_key': ''
         }
     

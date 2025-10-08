@@ -11,7 +11,8 @@ from file_manager import FileManager
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)
 
-mcp_client = MCPClient()
+mcp_url = os.environ.get('MCP_URL', 'https://jaunita-draughtier-doggedly.ngrok-free.dev')
+mcp_client = MCPClient(base_url=mcp_url)
 gemini_client = GeminiClient()
 file_manager = FileManager()
 agentic_engine = AgenticEngine(mcp_client, gemini_client, file_manager)

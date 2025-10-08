@@ -8,12 +8,16 @@ class GeminiClient:
         self.model = None
         self.configured = False
         
-        settings_path = 'config/settings.json'
-        if os.path.exists(settings_path):
-            with open(settings_path, 'r') as f:
-                settings = json.load(f)
-                if 'gemini_api_key' in settings:
-                    self.set_api_key(settings['gemini_api_key'])
+        env_api_key = os.environ.get('GEMINI_API_KEY')
+        if env_api_key:
+            self.set_api_key(env_api_key)
+        else:
+            settings_path = 'config/settings.json'
+            if os.path.exists(settings_path):
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+                    if 'gemini_api_key' in settings:
+                        self.set_api_key(settings['gemini_api_key'])
     
     def set_api_key(self, api_key):
         self.api_key = api_key
