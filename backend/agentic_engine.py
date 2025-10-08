@@ -2,6 +2,37 @@ import json
 import re
 from roblox_knowledge import get_roblox_context, get_template, generate_roblox_structure_suggestion
 
+def format_tree_visual(tree_data, prefix="", is_last=True):
+    """Format tree data into a visual tree structure"""
+    if not tree_data:
+        return "No files found"
+    
+    lines = []
+    
+    def add_node(node, prefix="", is_last=True):
+        if isinstance(node, dict):
+            name = node.get('name', 'Unknown')
+            node_type = node.get('type', '')
+            children = node.get('children', [])
+            
+            connector = "└── " if is_last else "├── "
+            icon = "📁 " if node_type == 'folder' else "📄 "
+            lines.append(f"{prefix}{connector}{icon}{name}")
+            
+            if children:
+                extension = "    " if is_last else "│   "
+                for i, child in enumerate(children):
+                    add_node(child, prefix + extension, i == len(children) - 1)
+        elif isinstance(node, list):
+            for i, item in enumerate(node):
+                add_node(item, prefix, i == len(node) - 1)
+    
+    if isinstance(tree_data, dict) and 'tree' in tree_data:
+        tree_data = tree_data['tree']
+    
+    add_node(tree_data)
+    return "\n".join(lines)
+
 class AgenticEngine:
     def __init__(self, mcp_client, gemini_client, file_manager):
         self.mcp = mcp_client
@@ -72,6 +103,27 @@ class AgenticEngine:
         
         yield "💭 **Result:**\n\n"
         
+        # Handle get_file_tree tasks with visual formatting
+        if len(task_plan) == 1 and task_plan[0].get('type') == 'get_file_tree':
+            result = execution_results[0]
+            if result.get('success') and result.get('tree'):
+                tree_visual = format_tree_visual(result['tree'])
+                response_text = f"Here's your project structure:\n\n```\n{tree_visual}\n```"
+                self.context_history[conversation_id].append({
+                    'role': 'assistant',
+                    'content': response_text
+                })
+                yield response_text
+                return
+            elif result.get('error'):
+                response_text = f"❌ Error getting file tree: {result['error']}"
+                self.context_history[conversation_id].append({
+                    'role': 'assistant',
+                    'content': response_text
+                })
+                yield response_text
+                return
+        
         # Check if we can create a direct response without Gemini (for read_script tasks)
         if len(task_plan) == 1 and task_plan[0].get('type') == 'read_script':
             result = execution_results[0]
@@ -123,6 +175,9 @@ class AgenticEngine:
                         fallback_response += "✅ Success"
                         if task.get('type') == 'read_script' and result.get('content'):
                             fallback_response += f"\n\n```lua\n{result.get('content')}\n```\n"
+                        elif task.get('type') == 'get_file_tree' and result.get('tree'):
+                            tree_visual = format_tree_visual(result['tree'])
+                            fallback_response += f"\n\n```\n{tree_visual}\n```\n"
                         elif result.get('message'):
                             fallback_response += f" - {result.get('message')}"
                     else:
@@ -459,9 +514,11 @@ Now analyze the user request and return the JSON array:"""
         
         prompt += "\nProvide a helpful, detailed response to the user. "
         prompt += "If a script was read, display the ENTIRE script content in a code block (```lua). "
+        prompt += "If a file tree was retrieved, format it as a visual tree structure using indentation and tree characters (├── └── │), NOT as JSON. "
         prompt += "If tasks were skipped due to missing parameters, apologize and ask for the needed information. "
         prompt += "If code was generated or tasks were executed successfully, explain what was done and what the user can expect. "
-        prompt += "Be transparent about what worked and what didn't."
+        prompt += "Be transparent about what worked and what didn't. "
+        prompt += "NEVER show raw JSON data to the user - always format it in a readable way."
         
         return prompt
     
