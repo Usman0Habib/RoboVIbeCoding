@@ -8,7 +8,7 @@ class GeminiClient:
         self.model = None
         self.configured = False
         
-        env_api_key = os.environ.get('GEMINI_API_KEY')
+        env_api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
         if env_api_key:
             self.set_api_key(env_api_key)
         else:
