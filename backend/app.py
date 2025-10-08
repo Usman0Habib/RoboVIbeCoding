@@ -23,7 +23,7 @@ def index():
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    data = request.json
+    data = request.json or {}
     user_message = data.get('message', '')
     conversation_id = data.get('conversation_id', 'default')
     
@@ -45,7 +45,7 @@ def chat():
 
 @app.route('/api/stream-chat', methods=['POST'])
 def stream_chat():
-    data = request.json
+    data = request.json or {}
     user_message = data.get('message', '')
     conversation_id = data.get('conversation_id', 'default')
     
@@ -91,18 +91,20 @@ def get_conversation_history(conversation_id):
 @app.route('/api/settings', methods=['GET', 'POST'])
 def settings():
     if request.method == 'GET':
-        settings = file_manager.load_settings()
-        settings.pop('gemini_api_key', None)
-        settings['gemini_configured'] = gemini_client.configured
+        settings_data = file_manager.load_settings()
+        settings_data.pop('gemini_api_key', None)
         return jsonify({
             'success': True,
-            'settings': settings
+            'settings': {
+                **settings_data,
+                'gemini_configured': gemini_client.configured
+            }
         })
     else:
-        data = request.json
+        data = request.json or {}
         file_manager.save_settings(data)
         
-        if 'gemini_api_key' in data:
+        if data and 'gemini_api_key' in data:
             try:
                 gemini_client.set_api_key(data['gemini_api_key'])
             except Exception as e:
@@ -111,7 +113,7 @@ def settings():
                     'error': str(e)
                 }), 400
         
-        if 'mcp_url' in data:
+        if data and 'mcp_url' in data:
             mcp_client.base_url = data['mcp_url']
         
         return jsonify({

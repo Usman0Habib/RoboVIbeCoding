@@ -296,3 +296,47 @@ class MCPClient:
         )
         
         return result
+    
+    def call_tool(self, tool_name, params):
+        """Generic method to call any MCP tool by name"""
+        
+        tool_map = {
+            'create_object': self.create_object,
+            'create_object_with_properties': lambda p: self.create_object_with_properties(
+                p.get('className'), 
+                p.get('parent'), 
+                p.get('name'), 
+                p.get('properties')
+            ),
+            'mass_create_objects_with_properties': lambda p: self.mass_create_objects_with_properties(
+                p.get('objects')
+            ),
+            'set_property': lambda p: self.set_property(
+                p.get('path'),
+                p.get('property_name'),
+                p.get('property_value')
+            ),
+            'mass_set_property': lambda p: self.mass_set_property(
+                p.get('paths'),
+                p.get('property_name'),
+                p.get('property_value')
+            ),
+            'get_instance_properties': lambda p: self.get_instance_properties(p.get('path')),
+            'get_instance_children': lambda p: self.get_instance_children(p.get('path')),
+            'search_objects': lambda p: self.search_objects(
+                p.get('query'),
+                p.get('search_type', 'name')
+            ),
+            'get_file_tree': lambda p: self.get_file_tree(),
+            'delete_object': lambda p: self.delete_object(p.get('path')),
+            'get_script_source': lambda p: self.get_script_source(p.get('instancePath')),
+            'set_script_source': lambda p: self.set_script_source(
+                p.get('instancePath'),
+                p.get('source')
+            ),
+        }
+        
+        if tool_name in tool_map:
+            return tool_map[tool_name](params)
+        else:
+            return {'error': f'Unknown tool: {tool_name}'}
