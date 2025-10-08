@@ -229,23 +229,34 @@ class AgenticEngine:
         
         # Detect script read requests (show/display/read + script path)
         read_keywords = ['show', 'display', 'read', 'get', 'see', 'view', 'content', 'code']
+        edit_keywords = ['edit', 'update', 'modify', 'change', 'fix', 'replace', 'rewrite']
         script_indicators = ['script', 'serverscriptservice', 'localscript', 'modulescript', 'replicatedstorage']
         
-        if any(keyword in msg_lower for keyword in read_keywords):
-            # Look for script path patterns like "game.ServerScriptService.OrbitHandle" or "ServerScriptService.MyScript"
-            import re
-            path_patterns = [
-                r'game\.([A-Za-z0-9.]+)',  # game.ServerScriptService.ScriptName
-                r'(?:^|\s)([A-Za-z0-9]+(?:\.[A-Za-z0-9]+)+)',  # ServerScriptService.ScriptName
-            ]
-            
+        import re
+        path_patterns = [
+            r'game\.([A-Za-z0-9.]+)',  # game.ServerScriptService.ScriptName
+            r'(?:^|\s)([A-Za-z0-9]+(?:\.[A-Za-z0-9]+)+)',  # ServerScriptService.ScriptName
+        ]
+        
+        # Check for edit/update requests
+        if any(keyword in msg_lower for keyword in edit_keywords):
             for pattern in path_patterns:
                 matches = re.findall(pattern, user_message)
                 for match in matches:
-                    # Clean up the path (remove "game." prefix if present)
                     path = match.replace('game.', '')
-                    
-                    # Check if this looks like a script path
+                    if any(indicator in path.lower() for indicator in script_indicators):
+                        return [{
+                            'type': 'update_script',
+                            'description': f'Update script at {path}',
+                            'params': {'path': path, 'action': 'edit'}
+                        }]
+        
+        # Check for read requests
+        if any(keyword in msg_lower for keyword in read_keywords):
+            for pattern in path_patterns:
+                matches = re.findall(pattern, user_message)
+                for match in matches:
+                    path = match.replace('game.', '')
                     if any(indicator in path.lower() for indicator in script_indicators):
                         return [{
                             'type': 'read_script',
@@ -263,8 +274,8 @@ Available Actions:
 1. create_script - Create new Lua script with code
    Required params: name (string), parent_path (string), script_type ("Script"|"LocalScript"|"ModuleScript"), content (Lua code string)
 
-2. write_file - Update existing file
-   Required params: path (string), content (string)
+2. update_script - Update/edit existing script source code
+   Required params: path (string - full instance path like "ServerScriptService.MyScript"), source (string - new Lua code)
 
 3. create_roblox_objects - Create Roblox objects
    Required params: parent_path (string), object_type (string), name (string), properties (object)
@@ -364,14 +375,14 @@ Now analyze the user request and return the JSON array:"""
                         params.setdefault('script_type', 'Script')
                         params.setdefault('content', '')
                     
-                    elif task_type == 'write_file':
+                    elif task_type == 'update_script':
                         if not params.get('path'):
-                            print(f"⚠️ write_file missing path, converting to chat")
+                            print(f"⚠️ update_script missing path, converting to chat")
                             task['type'] = 'chat'
-                            task['description'] = 'Unable to write file - missing path parameter. Providing guidance instead.'
+                            task['description'] = 'Unable to update script - missing path parameter. Providing guidance instead.'
                             task['params'] = {'error': 'Missing required path parameter'}
                         else:
-                            params.setdefault('content', '')
+                            params.setdefault('source', '')
                     
                     elif task_type in ['create_roblox_objects', 'create_object']:
                         params.setdefault('parent_path', 'Workspace')
@@ -430,17 +441,20 @@ Now analyze the user request and return the JSON array:"""
                 source = result.get('content', [{}])[0].get('text', '') if isinstance(result.get('content'), list) else result.get('source', '')
                 return {'success': True, 'content': source, 'result': result}
             
-            elif task_type == 'write_file':
+            elif task_type == 'update_script':
                 path = params.get('path', '')
-                content = params.get('content', '')
+                source = params.get('source', '')
                 
                 if not path:
-                    return {'success': False, 'error': 'No file path specified'}
+                    return {'success': False, 'error': 'No script path specified'}
                 
-                result = self.mcp.write_file(path, content)
+                if not source:
+                    return {'success': False, 'error': 'No source code provided for script update'}
+                
+                result = self.mcp.set_script_source(path, source)
                 if result.get('error'):
                     return {'success': False, 'error': result.get('error')}
-                return {'success': True, 'message': f'Updated file {path}', 'result': result}
+                return {'success': True, 'message': f'Updated script {path}', 'result': result}
             
             elif task_type == 'get_file_tree':
                 result = self.mcp.get_file_tree()
@@ -504,6 +518,8 @@ Now analyze the user request and return the JSON array:"""
                     # For read_script tasks, show FULL content
                     if task.get('type') == 'read_script' and result.get('content'):
                         prompt += f"\n\n=== SCRIPT CONTENT ===\n{result.get('content')}\n=== END SCRIPT ===\n"
+                    elif task.get('type') == 'update_script':
+                        prompt += f"\n   Script successfully updated at {task.get('params', {}).get('path', 'unknown path')}"
                     elif result.get('content'):
                         prompt += f"\n   Content: {str(result.get('content'))[:500]}"
                     if result.get('message'):
@@ -514,6 +530,7 @@ Now analyze the user request and return the JSON array:"""
         
         prompt += "\nProvide a helpful, detailed response to the user. "
         prompt += "If a script was read, display the ENTIRE script content in a code block (```lua). "
+        prompt += "If a script was updated, confirm what changes were made and where. "
         prompt += "If a file tree was retrieved, format it as a visual tree structure using indentation and tree characters (├── └── │), NOT as JSON. "
         prompt += "If tasks were skipped due to missing parameters, apologize and ask for the needed information. "
         prompt += "If code was generated or tasks were executed successfully, explain what was done and what the user can expect. "
