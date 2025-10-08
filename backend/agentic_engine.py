@@ -72,17 +72,67 @@ class AgenticEngine:
         
         yield "💭 **Result:**\n\n"
         
-        full_prompt = self._create_response_prompt(user_message, context, task_plan, execution_results)
+        # Check if we can create a direct response without Gemini (for read_script tasks)
+        if len(task_plan) == 1 and task_plan[0].get('type') == 'read_script':
+            result = execution_results[0]
+            if result.get('success') and result.get('content'):
+                script_path = task_plan[0]['params'].get('path', 'Unknown')
+                response_text = f"Here's the content of `{script_path}`:\n\n```lua\n{result['content']}\n```"
+                self.context_history[conversation_id].append({
+                    'role': 'assistant',
+                    'content': response_text
+                })
+                yield response_text
+                return
+            elif result.get('error'):
+                response_text = f"❌ Error reading script: {result['error']}\n\nMake sure:\n- The script exists in your Roblox Studio\n- The MCP server is connected\n- The path is correct (e.g., 'ServerScriptService.ScriptName')"
+                self.context_history[conversation_id].append({
+                    'role': 'assistant',
+                    'content': response_text
+                })
+                yield response_text
+                return
         
-        response_text = ""
-        for chunk in self.gemini.generate_response_stream(full_prompt):
-            response_text += chunk
-            yield chunk
-        
-        self.context_history[conversation_id].append({
-            'role': 'assistant',
-            'content': response_text
-        })
+        # Try to use Gemini for response generation
+        try:
+            full_prompt = self._create_response_prompt(user_message, context, task_plan, execution_results)
+            
+            response_text = ""
+            for chunk in self.gemini.generate_response_stream(full_prompt):
+                response_text += chunk
+                yield chunk
+            
+            self.context_history[conversation_id].append({
+                'role': 'assistant',
+                'content': response_text
+            })
+        except Exception as e:
+            # Fallback response if Gemini fails
+            error_msg = str(e)
+            if 'quota' in error_msg.lower() or '429' in error_msg:
+                fallback_response = "⚠️ Gemini API quota exceeded. "
+            else:
+                fallback_response = f"⚠️ Error generating response: {error_msg}\n\n"
+            
+            # Still show execution results
+            if execution_results:
+                fallback_response += "\n**Task Results:**\n"
+                for i, (task, result) in enumerate(zip(task_plan, execution_results), 1):
+                    fallback_response += f"\n{i}. {task['description']}: "
+                    if result.get('success'):
+                        fallback_response += "✅ Success"
+                        if task.get('type') == 'read_script' and result.get('content'):
+                            fallback_response += f"\n\n```lua\n{result.get('content')}\n```\n"
+                        elif result.get('message'):
+                            fallback_response += f" - {result.get('message')}"
+                    else:
+                        fallback_response += f"❌ {result.get('error', 'Unknown error')}"
+            
+            self.context_history[conversation_id].append({
+                'role': 'assistant',
+                'content': fallback_response
+            })
+            yield fallback_response
     
     def _build_context(self, conversation_id, user_message):
         context_parts = [get_roblox_context()]
@@ -121,6 +171,32 @@ class AgenticEngine:
                     'description': 'Analyze project structure',
                     'params': {}
                 }]
+        
+        # Detect script read requests (show/display/read + script path)
+        read_keywords = ['show', 'display', 'read', 'get', 'see', 'view', 'content', 'code']
+        script_indicators = ['script', 'serverscriptservice', 'localscript', 'modulescript', 'replicatedstorage']
+        
+        if any(keyword in msg_lower for keyword in read_keywords):
+            # Look for script path patterns like "game.ServerScriptService.OrbitHandle" or "ServerScriptService.MyScript"
+            import re
+            path_patterns = [
+                r'game\.([A-Za-z0-9.]+)',  # game.ServerScriptService.ScriptName
+                r'(?:^|\s)([A-Za-z0-9]+(?:\.[A-Za-z0-9]+)+)',  # ServerScriptService.ScriptName
+            ]
+            
+            for pattern in path_patterns:
+                matches = re.findall(pattern, user_message)
+                for match in matches:
+                    # Clean up the path (remove "game." prefix if present)
+                    path = match.replace('game.', '')
+                    
+                    # Check if this looks like a script path
+                    if any(indicator in path.lower() for indicator in script_indicators):
+                        return [{
+                            'type': 'read_script',
+                            'description': f'Read script content from {path}',
+                            'params': {'path': path}
+                        }]
         
         planning_prompt = f"""You are an autonomous Roblox development agent. Analyze the request and create a concrete action plan.
 
@@ -370,7 +446,10 @@ Now analyze the user request and return the JSON array:"""
                     prompt += f"⚠️ Skipped - {result.get('error', 'Missing required parameters')}"
                 elif result.get('success'):
                     prompt += "✅ Success"
-                    if result.get('content'):
+                    # For read_script tasks, show FULL content
+                    if task.get('type') == 'read_script' and result.get('content'):
+                        prompt += f"\n\n=== SCRIPT CONTENT ===\n{result.get('content')}\n=== END SCRIPT ===\n"
+                    elif result.get('content'):
                         prompt += f"\n   Content: {str(result.get('content'))[:500]}"
                     if result.get('message'):
                         prompt += f"\n   {result.get('message')}"
@@ -379,6 +458,7 @@ Now analyze the user request and return the JSON array:"""
                 prompt += "\n"
         
         prompt += "\nProvide a helpful, detailed response to the user. "
+        prompt += "If a script was read, display the ENTIRE script content in a code block (```lua). "
         prompt += "If tasks were skipped due to missing parameters, apologize and ask for the needed information. "
         prompt += "If code was generated or tasks were executed successfully, explain what was done and what the user can expect. "
         prompt += "Be transparent about what worked and what didn't."
