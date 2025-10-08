@@ -177,13 +177,13 @@ Return ONLY the JSON, no other text."""
             'description': 'Create Checkpoints folder in Workspace',
             'params': {
                 'className': 'Folder',
-                'parent': 'Workspace',
+                'parent': 'game.Workspace',
                 'name': 'Checkpoints',
                 'properties': {}
             },
             'reasoning': 'Organize checkpoints in dedicated folder',
             'verify_with': 'get_instance_children',
-            'verify_params': {'path': 'Workspace'}
+            'verify_params': {'path': 'game.Workspace'}
         })
         
         # Task 2: Create all platforms with PROPER POSITIONING
@@ -209,7 +209,7 @@ Return ONLY the JSON, no other text."""
             'description': 'Create SpawnLocation on first platform',
             'params': {
                 'className': 'SpawnLocation',
-                'parent': 'Workspace',
+                'parent': 'game.Workspace',
                 'name': 'StartSpawn',
                 'properties': {
                     'CFrame': spawn_cframe,
@@ -221,7 +221,7 @@ Return ONLY the JSON, no other text."""
             },
             'reasoning': 'Players need a spawn point on the first platform',
             'verify_with': 'get_instance_properties',
-            'verify_params': {'path': 'Workspace.StartSpawn'}
+            'verify_params': {'path': 'game.Workspace.StartSpawn'}
         })
         
         # Task 4: Move platforms to Checkpoints folder
@@ -278,7 +278,7 @@ Return ONLY the JSON, no other text."""
             'description': 'Create tycoon base plot',
             'params': {
                 'className': 'Part',
-                'parent': 'Workspace',
+                'parent': 'game.Workspace',
                 'name': 'TycoonPlot',
                 'properties': {
                     'CFrame': [0, 0.5, 0],

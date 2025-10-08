@@ -64,7 +64,7 @@ class SpatialEngine:
             platforms.append({
                 'name': f'Platform{i + 1}',
                 'className': 'Part',
-                'parent': 'Workspace',
+                'parent': 'game.Workspace',
                 'properties': {
                     'CFrame': SpatialEngine.vector3_to_cframe(current_x, current_y, current_z),
                     'Size': config['platform_size'],
@@ -161,7 +161,7 @@ class SpatialEngine:
             steps.append({
                 'name': f'Step{i + 1}',
                 'className': 'Part',
-                'parent': 'Workspace',
+                'parent': 'game.Workspace',
                 'properties': {
                     'CFrame': SpatialEngine.vector3_to_cframe(
                         0,
@@ -319,7 +319,7 @@ class SpatialEngine:
             objects.append({
                 'name': f'TowerFloor{floor + 1}',
                 'className': 'Part',
-                'parent': 'Workspace',
+                'parent': 'game.Workspace',
                 'properties': {
                     'CFrame': SpatialEngine.vector3_to_cframe(0, y_pos, 0),
                     'Size': [config['base'], 1, config['base']],
